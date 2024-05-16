@@ -43,8 +43,8 @@ def process_data(data):
         if distance > 0:                  # ignore initially ungathered data points
             max_distance = max([min([5000, distance]), max_distance])
             radians = angle * pi / 180.0
-            x = distance * cos(radians)
-            y = distance * sin(radians)
+            x = distance * sin(radians)
+            y = distance * -cos(radians)
             point = (160 + int(x / max_distance * 119), 120 + int(y / max_distance * 119))
             lcd.set_at(point, pygame.Color(255, 255, 255))
     pygame.display.update()
