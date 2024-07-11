@@ -88,7 +88,7 @@ void loop() {
       esc.writeMicroseconds(convertToPulseLength(motor_value));
       failsafe = false;
     }
-    else Serial.println("INVALID INPUT");
+    else Serial.println("ERROR");
   }
 
   // No data detected in timespan, activating failsafe
