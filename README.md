@@ -5,7 +5,7 @@ Arduino controls servo and ESC, receives serial commands from SOC with camera vi
 
 * Arduino controls PWM and receiver to prevent system crashes on Jetson from causing a runaway bot.
 * Jetson reads LIDAR and uses SLAM algorithm to navigate around the course, avoiding obstacles.
-* Mega shouldn't run if the transmitter had powered up with switch in the armed position
+* Mega shouldn't run if the transmitter had powered up with switch in the armed position.
 
 Serial Syntax (Commands case-insensitive):
 
