@@ -8,6 +8,7 @@
 #define SERVO_PIN     5
 #define ESC_PIN       6
 
+// Max time between inputs from Arduino
 #define TIMEOUT 1000
 
 // min and max values from RPI
@@ -19,10 +20,11 @@
 #define SERVO_MAX 2000
 
 // PIN 2
-#define int0 (PINE & 0x10) // #define int0 (PINE & 0b00010000) // Faster than digitalRead
+// Faster than digitalRead
+#define int0 (PINE & 0x10) 
+
 
 // PIN 3
-// #define int0 (PINE & 0b00100000)
 #define int1 (PINE & 0x20)
 
 volatile unsigned long rx_servo_val; // servo value
@@ -50,11 +52,14 @@ void setup()
 
 int16_t motor_value = 0;
 int16_t servo_value = 0;
-uint32_t last_update = 0;
+time_t last_update = 0;
 bool failsafe = true;
 bool running = false; // TODO: set to false once code is safe
 
 void loop() {
+  /* 
+    TODO: Timeout should only run and print while bot is running; Should be reset and begin countdown when running becomes true, and stop or ignore when running becomes false
+  */
   if (!running && rx_motor_val > 1950) {
     running = true;
     Serial.println("START");
