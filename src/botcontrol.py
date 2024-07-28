@@ -9,16 +9,12 @@ Serial interface to Mega, sending, receiving and processing serial data.
 
 class BotControl:
     def __init__(self, port="/dev/ttyACM0", baudrate=9600):
-        self.ser = serial.Serial(
-            port, baudrate, timeout=0.5
-        )  # TODO: Determine good timeout
-        time.sleep(3)
-        # Sleep until connection made
+        self.ser = serial.Serial(port, baudrate, timeout=0.5) # timeout
+        self.armed = False # Should be read only, set when update_telem called
 
-        #self.ser.write(b"RESET")
-
-        # Print to serial that we're starting a connection
-        # TODO: Send a RESET signal to tell the mega to re-initialize
+        # Wait until serial is open. 
+        while not self.ser.is_open:
+            time.sleep(0.01)
 
     def send(self, speed: int, steering: int):
         """Sends speed and steering values over serial to MEGA.
@@ -30,25 +26,40 @@ class BotControl:
 
         # TODO: Figure out how to make nonblocking
         message = f"{speed},{steering}\n"
-        self.ser.write(message.encode())
-
-    def get_telem(self) -> str:
-        # TODO: Read lines from serial in and send expected response back
-        # Another class must be responsible for storing these values
-        #return self.ser.read_until('\n')
-        return self.ser.in_waiting
+        self.ser.write(message.encode(encoding='utf-8'))
 
 
-    def __del__(self):
-        # Tells mega to set speed to zero and disconnect
-        # Disconnects from serial
-        pass
+    def update_telem(self) -> str:
+        while self.ser.in_waiting:
+            line = self.ser.readline().decode().lower()
+            print(line)
+            if 'disarm' in line:
+                self.armed = False
+            elif 'arm' in line:
+                self.armed = True
+            elif 'failsafe' in line:
+                print("Failsafe event")
+            elif 'error' in line:
+                raise ValueError(f"Device report on input: \"{line}\"")
+            
 
+    # TODO: Convert to a parameter
+    def get_armstate(self) -> bool:
+        return self.armed
+
+
+# Testing
 def main():
     b = BotControl()
-    for i in range(500):
-        b.send(0, 255)
-        time.sleep(0.5)
+    while not b.get_armstate():
+        b.update_telem()
+        time.sleep(0.01)
+
+    for _ in range(25):
+        b.send(0, 50)
+        time.sleep(0.1)
+        b.send(0, -50)
+        time.sleep(0.1)
 
     b.send(0, 0)
 

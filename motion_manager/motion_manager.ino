@@ -128,11 +128,16 @@ void loop() {
         esc.writeMicroseconds(convertToPulseLength(motor_value));
         failsafe = false;
       } 
-      else Serial.println("ERROR");
+      else {
+        // Returns invalid input for debugging
+        Serial.print("ERROR: ");
+        Serial.println(data);
+      }
     }
   }
 
   // No data detected in timespan, activating failsafe
+  // TODO: Also check for loss of serial
   if (!failsafe && millis() >= last_update + TIMEOUT) {
     Serial.println("FAILSAFE");
     // Servo should keep its position and as such isn't changed
