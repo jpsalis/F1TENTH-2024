@@ -3,30 +3,36 @@
 // https://forum.arduino.cc/t/determine-device-at-build-time/145824: Determining build device with preprocessor
 // https://docs.arduino.cc/retired/hacking/software/PortManipulation/: Register information for Uno
 
+/* Reads serial commands from main computer, and responds accordingly. Has various safety checks built-in. */
 #include <Servo.h>
 
-#define RX_SERVO_PIN 2
-#define RX_MOTOR_PIN 3
-#define ESC_PIN 5
-#define SERVO_PIN 6
+// Max time between inputs until failsafe (ms)
+#define TIMEOUT 1000
+// Time until robot can arm
+#define PWR_ON_ARM_GRACE 2000
 
 // Controls how hard the car should brake. From 0 to 255.
 #define E_BRAKE_POWER 255
-
-// Max time between inputs until failsafe (milliseconds)
-#define TIMEOUT 1000
+#define FAILSAFE_BRAKE_POWER 0
 
 // min and max values from RPI
 #define MIN -255
 #define MAX 255
 
-// minimum and maximum pulse length
+// minimum and maximum pulse length (μs)
 #define SERVO_MIN 1000
 #define SERVO_MAX 2000
 
-//PREPROCESSOR CHECKS
+// Pinouts
+const int RX_SERVO_PIN = 2;
+const int RX_MOTOR_PIN = 3;
+const int ESC_PIN = 5;
+const int SERVO_PIN = 6;
+const int LED = LED_BUILTIN;
 
-// Faster than digitalRead, might remove later
+/* PREPROCESSOR CHECKS */
+
+// Faster than digitalRead, used to read receiver. Might remove later
 #if defined(__AVR_ATmega328P__)
   #define SERVO_REG (PIND & 0b0000100)
   #define MOTOR_REG (PIND & 0b0001000)
@@ -37,11 +43,14 @@
   #error "Invalid device configuration."
 #endif
 
+// Safety guarantees for adjustments to power
 #if (E_BRAKE_POWER < 0 || E_BRAKE_POWER > 255)
   #error "Invalid value for E_BRAKE_POWER"
+#elif (FAILSAFE_BRAKE_POWER < 0 || FAILSAFE_BRAKE_POWER > 255)
+  #error "Invalid value for FAILSAFE_BRAKE_POWER"
 #endif
 
-
+// Interrupt variabbles
 volatile unsigned long rx_servo_val;  // servo value
 volatile unsigned long servo_count;     // temporary variable for servo PWM
 
@@ -50,7 +59,6 @@ volatile unsigned long motor_count;   // temporary variable for motor PWM
 
 Servo servo;
 Servo esc;
-
 void setup() {
   Serial.begin(9600);
 
@@ -59,72 +67,80 @@ void setup() {
 
   pinMode(RX_SERVO_PIN, INPUT);  // Rx servo pin
   pinMode(RX_MOTOR_PIN, INPUT);  // Rx motor pin
+  pinMode(LED, OUTPUT);
+
+  digitalWrite(LED, LOW);
 
   attachInterrupt(digitalPinToInterrupt(RX_SERVO_PIN), handleInterrupt_Servo, CHANGE);  // Catch up and down
   attachInterrupt(digitalPinToInterrupt(RX_MOTOR_PIN), handleInterrupt_Motor, CHANGE);  // Catch up and down
+  
+
+  while (!Serial) {
+    ; // wait for serial port to connect. Needed for native USB
+  }
+  digitalWrite(LED, HIGH);
 }
 
-int16_t motor_value = 0;
-int16_t servo_value = 0;
-uint32_t last_update = 0;
-bool failsafe = true;
-bool running = false;  // TODO: set to false once code is safe
-
 void loop() {
-  /* 
-    TODO: Timeout should only run and print while bot is running; Should be reset and begin countdown when running becomes true, and stop or ignore when running becomes false
-    TODO: SHOULD ONLY ARM if the bot was in the DISARMED state first (Test when migrating to another controller)
-    TODO: After starting, should WIPE serial cache before accepting more input, and should disregard all but the newest line
-  */
+  static uint32_t last_update = 0;
+  static bool failsafe = true;
+  static bool armed = false;  // TODO: set to false once code is safe
 
-  // Needs to be changed to be latching maybe
-  if (!running && rx_motor_val > 1950) {
-    running = true;
-    Serial.println("START");
+  // State Errors (names taken from Betaflight warnings)
+  static bool armSwitchSafe = false; // Armswitch must be off after boot to run commands
+  static int32_t bootTime = millis(); // Will not arm for a couple of seconds
+  
+  // Arming logic
+  if (!armed && armSwitchSafe && rx_motor_val > 1900) {
+    armed = true;
+    Serial.flush();
+    Serial.println("ARM");
   }
 
-  if (running && rx_motor_val < 1200) {
-    running = false;
-    failsafe = true;
-    //servo.writeMicroseconds(convertToPulseLength(0));
-    // Brakes at half speed
-    esc.writeMicroseconds(convertToPulseLength(-E_BRAKE_POWER));
-    Serial.println("STOP");
+  // Arm at boot invalid logic
+  else if (!armSwitchSafe && rx_motor_val != 0 && rx_motor_val < 1200) {
+      armSwitchSafe = true;
   }
 
-  // READ SERIAL
-  if (running && Serial.available() > 0) {
-    String data = Serial.readStringUntil('\n');
-    /*
-    Serial.print("Data: ");
-    Serial.println(data);
-    */
-    int delim_index = data.indexOf(',');
+  // Armed logic
+  else if (armed) {
+    if (rx_motor_val < 1200) {
+      armed = false;
+      failsafe = true;
+      //servo.writeMicroseconds(convertToPulseLength(0));
+      // Brakes at half speed
+      esc.writeMicroseconds(convertToPulseLength(-E_BRAKE_POWER));
+      Serial.println("DISARM");
+    }
+    
+    // Serial processing and servo writing
+    else if (Serial.available() > 0) {
+      String data = Serial.readStringUntil('\n');
+      int delim_index = data.indexOf(',');
 
-    // Input must have a comma in the middle somewhere
-    if (delim_index > 0 && delim_index != data.length() - 1) {
-      last_update = millis();
+      // Input must have a comma in the middle somewhere
+      if (delim_index > 0 && delim_index != data.length() - 1) {
+        last_update = millis();
 
-      // TODO: Data must be a valid int and in range before using
-      motor_value = data.substring(0, delim_index).toInt();
-      servo_value = data.substring(delim_index + 1, data.length()).toInt();
-      servo.writeMicroseconds(convertToPulseLength(servo_value));
-      esc.writeMicroseconds(convertToPulseLength(motor_value));
-      failsafe = false;
-    } else Serial.println("ERROR");
+        int16_t motor_value = data.substring(0, delim_index).toInt();
+        int16_t servo_value = data.substring(delim_index + 1, data.length()).toInt();
+        servo.writeMicroseconds(convertToPulseLength(servo_value));
+        esc.writeMicroseconds(convertToPulseLength(motor_value));
+        failsafe = false;
+      } 
+      else Serial.println("ERROR");
+    }
   }
 
   // No data detected in timespan, activating failsafe
   if (!failsafe && millis() >= last_update + TIMEOUT) {
     Serial.println("FAILSAFE");
-    // Servo should keep its position
-    //servo.writeMicroseconds(convertToPulseLength(0));
-    esc.writeMicroseconds(convertToPulseLength(0));
+    // Servo should keep its position and as such isn't changed
+    esc.writeMicroseconds(convertToPulseLength(FAILSAFE_BRAKE_POWER));
     failsafe = true;
   }
-  //if (!running && rx_motor_va)
 
-  delay(10);
+  delay(5);
 }
 
 void handleInterrupt_Servo() {

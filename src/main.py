@@ -10,8 +10,8 @@ import time
 
 """ SETUP """
 # TODO: Both devices are TTYUSB, we need to figure out which is which somehow at runtime
-lidar = Lidar("/dev/TTYUSB0")
-bot = BotControl("/dev/TTYUSB1")
+lidar = Lidar("/dev/ttyLIDAR")
+bot = BotControl("/dev/ttyUSB0")
 hal_9000 = Algorithm()
 state = "idle"
 
@@ -25,14 +25,13 @@ while True:
     if telem != "":
         state = telem
 
-    match state:
-        case "running":
-            reading = lidar.read()
-            speed, angle = hal_9000.process(reading)
-            bot.send(speed, angle)
+    if state == "running":
+        reading = lidar.read()
+        speed, angle = hal_9000.process(reading)
+        bot.send(speed, angle)
 
-        case _:
-            bot.send(0, 0)
+    else:
+        bot.send(0, 0)
 
     # Subject to change depending on implementation
     time.sleep(0.1)
