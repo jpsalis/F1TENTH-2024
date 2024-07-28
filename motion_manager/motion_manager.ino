@@ -91,20 +91,20 @@ void loop() {
   static int32_t bootTime = millis(); // Will not arm for a couple of seconds
   
   // Arming logic
-  if (!armed && armSwitchSafe && rx_motor_val > 1900) {
+  if (!armed && armSwitchSafe && rx_motor_val >= 1800) {
     armed = true;
     Serial.flush();
     Serial.println("ARM");
   }
 
   // Arm at boot invalid logic
-  else if (!armSwitchSafe && rx_motor_val != 0 && rx_motor_val < 1200) {
+  else if (!armSwitchSafe && rx_motor_val != 0 && rx_motor_val < 1800) {
       armSwitchSafe = true;
   }
 
   // Armed logic
   else if (armed) {
-    if (rx_motor_val < 1200) {
+    if (rx_motor_val <= 1200) {
       armed = false;
       failsafe = true;
       //servo.writeMicroseconds(convertToPulseLength(0));
