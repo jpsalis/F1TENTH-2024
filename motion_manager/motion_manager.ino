@@ -60,7 +60,7 @@ volatile unsigned long motor_count;   // temporary variable for motor PWM
 Servo servo;
 Servo esc;
 void setup() {
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   servo.attach(SERVO_PIN);  // servo pin
   esc.attach(ESC_PIN);      // motor pin

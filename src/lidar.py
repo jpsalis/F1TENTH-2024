@@ -1,5 +1,6 @@
 """Lidar Module
 Made for F1Tenth 2024"""
+# Unimplemented and unnecesary until ROS2 setup
 from adafruit_rplidar import RPLidar
 
 
@@ -11,8 +12,8 @@ class Lidar:
         self.lidar = RPLidar(None, port, baudrate, timeout)
         pass
 
-    def read(self):
-        return [0, 0, 0, 0]
+
+        # Value will be Iterator[Tuple[bool, int|None, float, float]]
 
     def __del__(self):
         # TODO: Create a way to safely disconnect and
