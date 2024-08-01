@@ -3,10 +3,10 @@ Start point for processing computer.
 Bot reads lidar data, processes it with an algorithm, and sends to microcontroller to handle servos.
 """
 
+import time
+from adafruit_rplidar import RPLidar
 from algorithm import Algorithm
 from botcontrol import BotControl
-from adafruit_rplidar import RPLidar
-import time
 
 LIDAR_PORT = "/dev/ttyUSB0"  # Subject to change, should be set with a udev rule
 MEGA_PORT = "/dev/ttyACM0"  # Subject to change, should be set with a udev rule

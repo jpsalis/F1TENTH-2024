@@ -15,6 +15,5 @@ class Algorithm:
     def process(self, lidar_data) -> tuple[int, int]:
         """Returns motor and steering positions for bot to execute"""
 
-        # TODO: Make test code that drives forward at a constant speed
-        # until an obstacle is in front with high probability
+        # TODO: Make test code that drives forward until an obstacle is in front
         return (0, 0)

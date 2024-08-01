@@ -1,14 +1,23 @@
-import serial
+"""
+botcontrol Module
+Contains BotControl class
+"""
 import time
-
-"""
-BotControl
-Serial interface to Mega, sending, receiving and processing serial data.
-"""
-
+import serial
 
 class BotControl:
+    """ 
+    BotControl
+    Serial interface to Mega, sending, receiving and processing serial data.
+
+    parameters:
+    armed: Current arm state received from the ESC/servo board
+
+    methods:
+    send(speed, steering):
+    """
     def __init__(self, port: str = "/dev/ttyACM0", baudrate: int = 9600):
+        """Initialize serial and set internal variables."""
         self.ser = serial.Serial(port, baudrate, timeout=0.5)  # timeout
         self._armed = False  # Should be read only, set when update_telem called
 
@@ -17,18 +26,22 @@ class BotControl:
             time.sleep(0.01)
 
     def send(self, speed: int, steering: int) -> None:
-        """Sends speed and steering values over serial to MEGA.
-        Must be in the range -255 to 255."""
+        """Sends speed and steering values over serial.
+       Values must be from -255 and 255 inclusive."""
+
         if speed < -255 or speed > 255:
             raise RuntimeError("Speed value is invalid.")
-        elif steering < -255 or steering > 255:
+        if steering < -255 or steering > 255:
             raise RuntimeError("Steering value is invalid.")
 
         # TODO: Figure out how to make nonblocking
         message = f"{speed},{steering}\n"
         self.ser.write(message.encode(encoding="utf-8"))
 
-    def update_telem(self) -> str:
+    def update_telem(self) -> None:
+        """Polls serial port for lines of incoming messages.
+        Must be called frequently to ensure input doesn't 
+        back up, and armstate is set correctly."""
         while self.ser.in_waiting:
             line = self.ser.readline().decode().lower()
             print(line)
@@ -43,11 +56,12 @@ class BotControl:
 
     @property
     def armed(self) -> bool:
+        """Getter for internal armed variable."""
         return self._armed
 
 
-# Testing
 def main():
+    """Test for botcontrol Module"""
     b = BotControl()
     while not b.armed:
         b.update_telem()
