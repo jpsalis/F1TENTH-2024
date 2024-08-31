@@ -12,8 +12,9 @@ class Algorithm:
         """initializes the class, and any features/variables required to operate."""
 
     # Could possibly take in more information depending on what sensors we add
-    def process(self, lidar_data) -> tuple[int, int]:
+    def process(self, lidar_data):
         """Returns motor and steering positions for bot to execute"""
 
         # TODO: Make test code that drives forward until an obstacle is in front
+        print("in algorithm")
         return (0, 0)

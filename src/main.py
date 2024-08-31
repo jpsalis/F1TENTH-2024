@@ -17,7 +17,8 @@ lidar = RPLidar(None, LIDAR_PORT, baudrate=115200, timeout=3)
 bot = BotControl(MEGA_PORT, baudrate=115200)
 hal_9000 = Algorithm()
 
-if lidar.health() == "Error" or lidar.health == "Warning":
+#print(type(lidar))
+if lidar.health == "Error" or lidar.health == "Warning":
     lidar.reset()
 
 lidar.start_motor()

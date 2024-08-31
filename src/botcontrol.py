@@ -44,7 +44,6 @@ class BotControl:
         back up, and armstate is set correctly."""
         while self.ser.in_waiting:
             line = self.ser.readline().decode().lower()
-            print(line)
             if "disarm" in line:
                 self._armed = False
             elif "arm" in line:
