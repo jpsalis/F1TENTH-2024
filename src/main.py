@@ -26,13 +26,15 @@ lidar.start_motor()
 
 """ LOOP """
 prev_armed = False
+lidar_gen = lidar.iter_scans()
 
 try:
     while True:
         if bot.armed:
             # Things to do while bot is armed
             # TODO: Might need to clear input depending on speed of algorithm?
-            speed, angle = hal_9000.process(lidar.iter_scans())
+
+            speed, angle = hal_9000.process(next(lidar_gen))
             bot.send(speed, angle)
         else:
             # Things to do while the bot is disarmed

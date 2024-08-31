@@ -16,5 +16,15 @@ class Algorithm:
         """Returns motor and steering positions for bot to execute"""
 
         # TODO: Make test code that drives forward until an obstacle is in front
-        print("in algorithm")
+
+        sum = 0
+        count = 0
+        for _, angle, distance in lidar_data:
+            if angle < 5 or angle > 355:
+                count += 1
+                sum += distance
+
+        if count > 0:
+            print(sum / count)
+
         return (0, 0)
