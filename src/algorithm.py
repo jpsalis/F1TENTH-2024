@@ -12,6 +12,8 @@ class Algorithm:
         """initializes the class, and any features/variables required to operate."""
         self.running = True
         self.sample_volume = 10
+        self.p_gain = 1 
+        self.max_angle = 90
 
     # Could possibly take in more information depending on what sensors we add
     def process(self, lidar_data):
@@ -48,17 +50,19 @@ class Algorithm:
 
                 avg_dist = dist_sum / self.sample_volume
 
+                center_angle = points[(i + self.sample_volume // 2) % len(points)][0]
                 # TODO: Also ensure the angle is within valid cone
-                if avg_dist > farthest_point[1]: 
+                if avg_dist > farthest_point[1] and center_angle : 
                     #TODO: Change to average of points, counting overflow at 0 and 360
                     farthest_point = (
-                            points[(i + self.sample_volume // 2) % len(points)][0],
+                            center_angle,
                             avg_dist
                             )
 
         print("angle:", farthest_point[0], "distance:", farthest_point[1])
         # Convert farthest point and angle to distance
-                    
+
+        if farthest_point[0] > 360
                     
 
 
@@ -70,7 +74,7 @@ class Algorithm:
                 self.running = False
             
         if self.running:
-            return (25, 0)
+            return (25, servo_angle)
 
         #print("shut off")
-        return (-200, 0)
+        return (-200, servo_angle)

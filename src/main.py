@@ -5,7 +5,7 @@ Bot reads lidar data, processes it with an algorithm, and sends to microcontroll
 
 import time
 from adafruit_rplidar import RPLidar
-from algorithm import Algorithm
+from algorithm_fake import Algorithm
 from botcontrol import BotControl
 
 LIDAR_PORT = "/dev/ttyUSB0"  # Subject to change, should be set with a udev rule
